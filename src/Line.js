@@ -43,7 +43,7 @@ const Line = ({
                     },
                     'paint': {
                         'line-color': color,
-                        'line-width': lineWidth ? lineWidth : 3, 
+                        'line-width': lineWidth ? lineWidth : 3,
                         'line-opacity': opacity,
                         ...dashProperty
                     }
@@ -76,7 +76,7 @@ const Line = ({
     }, [data])
 
     useEffect(() => {
-        if (map) {
+        if (map && map.getSource(buildName(name))) {
             map.setLayoutProperty(
                 buildName(name),
                 'visibility',

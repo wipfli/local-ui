@@ -1,14 +1,8 @@
 import React, { useState, useEffect } from 'react'
 
-import timespace from '@mapbox/timespace'
+import axios from 'axios'
 
-import time from './time.json'
-import climb from './climb.json'
-import speedKmh from './speed.json'
-import altitude from './altitude.json'
-import heading from './heading.json'
-import latitude from './latitude.json'
-import longitude from './longitude.json'
+import timespace from '@mapbox/timespace'
 
 import IconButton from '@material-ui/core/IconButton'
 import ShowChartIcon from '@material-ui/icons/ShowChart'
@@ -19,34 +13,93 @@ import Map from './Map'
 
 const tileserverUrl = 'https://ballometer.io/tiles/'
 
-const speed = speedKmh.map(value => value / 3.6)
+const dataUrl = ''
 
-const N = altitude.length
+const getInitialData = (setData, setIndex) => {
+    axios.get(dataUrl + '/store/before')
+        .then(res => {
+            const dataIn = res.data
+
+            const removeNulls = (values, alternative) => {
+
+                const result = values.map((value, index) => {
+                    if (value) {
+                        return value
+                    }
+                    else {
+                        const next = values.slice(index).find(v => v)
+                        if (next) {
+                            return next
+                        }
+                        else {
+                            const previous = values.slice(0, index).reverse().find(v => v)
+                            if (previous) {
+                                return previous
+                            }
+                            else {
+                                return null
+                            }
+                        }
+                    }
+                })
+
+                if (result.every(e => e === null)) {
+                    return result.map(_ => alternative)
+                }
+                else {
+                    return result
+                }
+            }
+
+            setData({
+                altitude: removeNulls(dataIn.altitude, 0.0),
+                speed: removeNulls(dataIn.speed, 0.0),
+                heading: removeNulls(dataIn.heading, 0.0),
+                climb: removeNulls(dataIn.climb, 0.0),
+                time: dataIn.time,
+                longitude: removeNulls(dataIn.longitude, 8.55301),
+                latitude: removeNulls(dataIn.latitude, 47.35257),
+            })
+            setIndex(dataIn.time.length - 1)
+        })
+        .catch(err => {
+            console.log(err)
+        })
+}
+
+const getNow = (setNow) => {
+    axios.get(dataUrl + '/store/now')
+        .then(res => {
+            setNow(res.data)
+        })
+        .catch(err => {
+            console.log(err)
+        })
+}
 
 const App = () => {
 
     const [viewportHeight, setViewportHeight] = useState(window.innerHeight)
     const [viewportWidth, setViewportWidth] = useState(window.innerWidth)
 
-    
     const [data, setData] = useState({
-        altitude: altitude.slice(0, Math.floor(N / 2)),
-        speed: speed.slice(0, Math.floor(N / 2)),
-        heading: heading.slice(0, Math.floor(N / 2)),
-        climb: climb.slice(0, Math.floor(N / 2)),
-        time: time.slice(0, Math.floor(N / 2)),
-        longitude: longitude.slice(0, Math.floor(N / 2)),
-        latitude: latitude.slice(0, Math.floor(N / 2))
+        altitude: [0],
+        speed: [0],
+        heading: [0],
+        climb: [0],
+        time: [Date.now() * 1e-3],
+        longitude: [8.55301],
+        latitude: [47.35257],
     })
+    const [now, setNow] = useState(null)
 
-    const [maxIndex, setMaxIndex] = useState(data.altitude.length - 1)
-
-    const [index, setIndex] = useState(maxIndex)
+    const [index, setIndex] = useState(0)
 
     const [displayPlots, setDisplayPlots] = useState(false)
 
-    const utcOffset = timespace.getFuzzyLocalTimeFromPoint(
-        data.time[index] * 1000, [data.longitude[index], data.latitude[index]]).utcOffset()
+    const fuzzy = timespace.getFuzzyLocalTimeFromPoint(
+        data.time[index] * 1000, [data.longitude[index], data.latitude[index]])
+    const utcOffset = fuzzy ? fuzzy.utcOffset() : 0.0
 
     useEffect(() => {
         const handleResize = () => {
@@ -59,28 +112,41 @@ const App = () => {
     }, [])
 
     useEffect(() => {
-        
+        getInitialData(setData, setIndex)
+    }, [])
+
+    useEffect(() => {
         const interval = setInterval(() => {
-            setMaxIndex(maxIndex => maxIndex + 1 < N ? maxIndex + 1 : maxIndex)
+            getNow(setNow)
         }, 1000)
         return () => clearInterval(interval)
     }, [])
 
     useEffect(() => {
-        
-        setData({
-            altitude: altitude.slice(0, maxIndex + 1),
-            speed: speed.slice(0, maxIndex + 1),
-            heading: heading.slice(0, maxIndex + 1),
-            climb: climb.slice(0, maxIndex + 1),
-            time: time.slice(0, maxIndex + 1),
-            longitude: longitude.slice(0, maxIndex + 1),
-            latitude: latitude.slice(0, maxIndex + 1)
-        })
-        if (index === maxIndex - 1) {
-            setIndex(maxIndex)
+        if (!now) {
+            return
         }
-    }, [maxIndex])
+
+        const replaceNull = (field, data, now) => {
+            return now[field] ? now[field] : data[field].slice(-1)[0]
+        }
+
+        const lengthBefore = data.time.length
+
+        setData({
+            altitude: [...data.altitude, replaceNull('altitude', data, now)],
+            speed: [...data.speed, replaceNull('speed', data, now)],
+            heading: [...data.heading, replaceNull('heading', data, now)],
+            climb: [...data.climb, replaceNull('climb', data, now)],
+            time: [...data.time, now.time],
+            longitude: [...data.longitude, replaceNull('longitude', data, now)],
+            latitude: [...data.latitude, replaceNull('latitude', data, now)]
+        })
+
+        if (index === lengthBefore - 1) {
+            setIndex(index => index + 1)
+        }
+    }, [now])
 
     return (
         <div>

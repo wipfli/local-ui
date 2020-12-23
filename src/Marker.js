@@ -110,7 +110,7 @@ const Marker = ({
     }, [longitude, latitude])
 
     useEffect(() => {
-        if (map) {
+        if (map && map.getSource(buildName(name))) {
             map.setLayoutProperty(
                 buildName(name),
                 'visibility',

@@ -47,7 +47,7 @@ const Map = ({
         }
     }
 
-    const balloonPoints = data.longitude.map((value, index) => {
+    const points = data.longitude.map((value, index) => {
         return [value, data.latitude[index]]
     })
 
@@ -63,7 +63,10 @@ const Map = ({
         map.dragRotate.disable()
         map.touchZoomRotate.disableRotation()
 
-        map.fitBounds([balloonPoints[0], balloonPoints[balloonPoints.length - 1]], { padding: 50 })
+        map.fitBounds([points[0], points.slice(-1)[0]], { 
+            padding: 50,
+            maxZoom: 12
+        })
 
         map.on('move', () => {
             setZoom(map.getZoom())
@@ -127,7 +130,7 @@ const Map = ({
             <MapTrace
                 map={map}
                 name="balloon"
-                points={balloonPoints}
+                points={points}
                 speed={data.speed}
                 heading={data.heading}
                 index={index}
