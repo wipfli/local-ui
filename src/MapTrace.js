@@ -23,28 +23,16 @@ const MapTrace = ({
     callbackIndex,
     color,
     historyVisible,
-    imagePath
+    imagePath,
+    loading
 }) => {
 
     const [dragPoint, setDragPoint] = useState(points[index])
 
-    // bring marker to the geographic center of the points
-    useEffect(() => {
-        const mean = (x, y) => 0.5 * (x + y)
-        const midPoint = (point1, point2) => {
-            return [
-                mean(point1[0], point2[0]),
-                mean(point1[1], point2[1])
-            ]
-        }
-        const index = findClosest(points, midPoint(points[0], points.slice(-1)[0]))
-        callbackIndex(index)
-    }, [])
-
     useEffect(() => {
         callbackIndex(findClosest(points, dragPoint))
     }, [dragPoint])
-
+    
     return (
         <div>
             <Line
@@ -55,7 +43,7 @@ const MapTrace = ({
                 opacity={0.0}
                 dashed={false}
                 lineWidth={32}
-                visible={historyVisible}
+                visible={!loading && historyVisible}
                 behindMarker={buildName(name)}
                 onClick={setDragPoint}
             />
@@ -66,7 +54,7 @@ const MapTrace = ({
                 color={color}
                 opacity={0.5}
                 dashed={false}
-                visible={historyVisible}
+                visible={!loading && historyVisible}
                 behindMarker={buildName(name)}
             />
             <Line
@@ -76,7 +64,7 @@ const MapTrace = ({
                 color={color}
                 opacity={1.0}
                 dashed={false}
-                visible={historyVisible}
+                visible={!loading && historyVisible}
                 behindMarker={buildName(name)}
             />
             <Marker
@@ -85,7 +73,7 @@ const MapTrace = ({
                 longitude={points[index][0]}
                 latitude={points[index][1]}
                 onDrag={setDragPoint}
-                visible={true}
+                visible={!loading}
                 imagePath={imagePath}
             />
             <Projection 
@@ -94,7 +82,7 @@ const MapTrace = ({
                 point={points[index]}
                 speed={speed[index]}
                 heading={heading[index]}
-                visible={index === points.length - 1}
+                visible={!loading && (index === points.length - 1)}
                 color={color}
             />
         </div>

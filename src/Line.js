@@ -55,12 +55,6 @@ const Line = ({
                     })
                 }
 
-                map.setLayoutProperty(
-                    buildName(name),
-                    'visibility',
-                    visible ? 'visible' : 'none'
-                )
-
                 const markerLayer = 'Marker_' + behindMarker
                 if (map.getLayer(markerLayer)) {
                     map.moveLayer(buildName(name), markerLayer)
@@ -70,7 +64,7 @@ const Line = ({
     }, [map])
 
     useEffect(() => {
-        if (visible && map && map.getSource(buildName(name))) {
+        if (map && map.getSource(buildName(name))) {
             map.getSource(buildName(name)).setData(data)
         }
     }, [data])

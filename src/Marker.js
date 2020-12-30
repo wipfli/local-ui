@@ -49,12 +49,6 @@ const Marker = ({
                     }
                 })
 
-                map.setLayoutProperty(
-                    buildName(name),
-                    'visibility',
-                    visible ? 'visible' : 'none'
-                )
-
                 if (onDrag) {
                     const canvas = map.getCanvasContainer()
 
@@ -104,7 +98,7 @@ const Marker = ({
     }, [map])
 
     useEffect(() => {
-        if (visible && map && map.getSource(buildName(name))) {
+        if (map && map.getSource(buildName(name))) {
             map.getSource(buildName(name)).setData(data)
         }
     }, [longitude, latitude])

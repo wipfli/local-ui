@@ -3,11 +3,7 @@ import { useState, useEffect } from 'react'
 import Highcharts from 'highcharts'
 import HighchartsReact from 'highcharts-react-official'
 
-import Box from '@material-ui/core/Box'
-import IconButton from '@material-ui/core/IconButton'
-import CloseIcon from '@material-ui/icons/Close'
-
-import './Plots.css'
+import Side from './Side'
 
 const highlight = timestamp => {
     Highcharts.charts.forEach(chart => {
@@ -218,24 +214,13 @@ const Plots = ({
         highlight(toMilliseconds(data.time[index]))
     }, [optionsCounter])
 
-return (
-    <div>
-        <div
-            style={{
-                position: 'absolute',
-                width: (viewportWidth > 355 ? 350 : (viewportWidth - 5)),
-                height: viewportHeight,
-                overflowY: 'auto',
-                boxShadow: '5px 0 10px #AAAAAA',
-                paddingRight: 5,
-                backgroundColor: 'white'
-            }}
+    return (
+        <Side
+            title="Plots"
+            viewportWidth={viewportWidth}
+            viewportHeight={viewportHeight}
+            handleClose={handleClose}
         >
-            <Box display="flex" justifyContent="flex-end">
-                <IconButton onClick={handleClose}>
-                    <CloseIcon />
-                </IconButton>
-            </Box>
             <div
                 onMouseMove={handleHover}
                 onTouchMove={handleHover}
@@ -251,9 +236,8 @@ return (
                     })
                 }
             </div>
-        </div>
-    </div>
-)
+        </Side>
+    )
 }
 
 export default Plots

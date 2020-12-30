@@ -31,7 +31,13 @@ const Projection = ({
     visible,
     color
 }) => {
-    const times = [...Array(7).keys()].map(value => value * 10)
+    const times = [15, 30, 60, 120]
+    const labels = [
+        '15 minutes',
+        '30 minutes',
+        '1 hour',
+        '2 hours'
+    ]
     const points = times.map(value => {
         return endBearingDistance(point, heading, speed * value * 60)
     })
@@ -41,7 +47,7 @@ const Projection = ({
             <Line
                 map={map}
                 name={buildName(name)}
-                points={[...points, endBearingDistance(points[points.length - 1], heading, 50e3)]}
+                points={[point, ...points, endBearingDistance(points[points.length - 1], heading, 50e3)]}
                 color={color}
                 opacity={1.0}
                 dashed={true}
@@ -56,9 +62,9 @@ const Projection = ({
                         name={buildName(name) + times[index].toString() + 'min'}
                         longitude={value[0]}
                         latitude={value[1]}
-                        visible={index && visible}
+                        visible={visible}
                         imagePath="point-small.png"
-                        clickText={'Location in ' + times[index].toString() + ' minutes'}
+                        clickText={'Location in ' + labels[index]}
                         key={index}
                     />
                 })

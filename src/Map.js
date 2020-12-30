@@ -6,8 +6,10 @@ import 'mapbox-gl/dist/mapbox-gl.css'
 import { IconButton, Typography } from '@material-ui/core'
 import AddIcon from '@material-ui/icons/Add'
 import RemoveIcon from '@material-ui/icons/Remove'
+import LocationOnIcon from '@material-ui/icons/LocationOn'
 import Box from '@material-ui/core/Box'
 import Link from '@material-ui/core/Link'
+import Tooltip from '@material-ui/core/Tooltip'
 
 import MapTrace from './MapTrace'
 
@@ -26,7 +28,9 @@ const Map = ({
     tileserverUrl,
     data,
     index,
-    callbackIndex
+    callbackIndex,
+    loading,
+    gpsFix
 }) => {
 
     const [zoom, setZoom] = useState(10)
@@ -51,6 +55,16 @@ const Map = ({
         return [value, data.latitude[index]]
     })
 
+    const locateBalloon = () => {
+        callbackIndex(data.latitude.length - 1)
+        if (map) {
+            map.fitBounds([points[0], points.slice(-1)[0]], {
+                padding: 50,
+                maxZoom: 16
+            })
+        }
+    }
+
     useEffect(() => {
         const map = new mapboxgl.Map({
             container: mapContainerRef.current,
@@ -63,7 +77,7 @@ const Map = ({
         map.dragRotate.disable()
         map.touchZoomRotate.disableRotation()
 
-        map.fitBounds([points[0], points.slice(-1)[0]], { 
+        map.fitBounds([points[0], points.slice(-1)[0]], {
             padding: 50,
             maxZoom: 12
         })
@@ -86,6 +100,15 @@ const Map = ({
         }
     }, [viewportWidth, viewportHeight])
 
+    useEffect(() => {
+        if (map && (!loading || gpsFix)) {
+            map.fitBounds([points[0], points.slice(-1)[0]], {
+                padding: 50,
+                maxZoom: 16
+            })
+        }
+    }, [loading, gpsFix])
+
     return (
         <div>
             <div
@@ -105,12 +128,21 @@ const Map = ({
                 padding: 10
             }}>
                 <Box display="flex" flexDirection="column">
-                    <IconButton onClick={zoomIn}>
-                        <AddIcon />
-                    </IconButton>
-                    <IconButton onClick={zoomOut}>
-                        <RemoveIcon />
-                    </IconButton>
+                    <Tooltip title="Zoom In" placement="left">
+                        <IconButton onClick={zoomIn}>
+                            <AddIcon />
+                        </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Zoom Out" placement="left">
+                        <IconButton onClick={zoomOut}>
+                            <RemoveIcon />
+                        </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Locate Balloon" placement="left">
+                        <IconButton onClick={locateBalloon}>
+                            <LocationOnIcon />
+                        </IconButton>
+                    </Tooltip>
                 </Box>
             </div>
 
@@ -138,6 +170,7 @@ const Map = ({
                 color="#3498db"
                 historyVisible={true}
                 imagePath="./balloon.png"
+                loading={loading}
             />
         </div>
     )

@@ -6,19 +6,38 @@ import timespace from '@mapbox/timespace'
 
 import IconButton from '@material-ui/core/IconButton'
 import ShowChartIcon from '@material-ui/icons/ShowChart'
+import ListIcon from '@material-ui/icons/List'
+import Backdrop from '@material-ui/core/Backdrop'
+import CircularProgress from '@material-ui/core/CircularProgress'
+import Snackbar from '@material-ui/core/Snackbar'
+import Box from '@material-ui/core/Box'
+import Tooltip from '@material-ui/core/Tooltip'
 
 import Plots from './Plots'
 import Chips from './Chips'
 import Map from './Map'
+import ListFlights from './ListFlights'
 
-const tileserverUrl = 'https://ballometer.io/tiles/'
+const tileserverUrl = window.location.origin + ':10001/'
+//const tileserverUrl = 'https://ballometer.io/tiles/'
 
 const dataUrl = ''
 
-const getInitialData = (setData, setIndex) => {
-    axios.get(dataUrl + '/store/before')
+const getInitialData = (setData, setIndex, setLoading, informUser) => {
+    const urlParams = new URLSearchParams(window.location.search)
+    const flightId = urlParams.get('flightId')
+
+    const url = dataUrl + '/store/points' + (flightId ? '?flightId=' + flightId : '')
+
+    axios.get(url)
         .then(res => {
             const dataIn = res.data
+
+            if (dataIn.time.length === 0) {
+                setLoading(false)
+                informUser('The flight you are looking for was not found.')
+                return
+            }
 
             const removeNulls = (values, alternative) => {
 
@@ -61,8 +80,11 @@ const getInitialData = (setData, setIndex) => {
                 latitude: removeNulls(dataIn.latitude, 47.35257),
             })
             setIndex(dataIn.time.length - 1)
+            setLoading(false)
         })
         .catch(err => {
+            setLoading(false)
+            informUser('The flight you are looking for was not found.')
             console.log(err)
         })
 }
@@ -96,6 +118,23 @@ const App = () => {
     const [index, setIndex] = useState(0)
 
     const [displayPlots, setDisplayPlots] = useState(false)
+    const [displayListFlights, setDisplayListFlights] = useState(false)
+
+    const [nowIntervalId, setNowIntervalId] = useState(null)
+
+    const [loading, setLoading] = useState(true)
+
+    const [gpsFix, setGpsFix] = useState(false)
+
+    const [displaySnackbar, setDisplaySnackbar] = useState(false)
+    const [snackbarMessage, setSnackbarMessage] = useState('')
+
+    const handleSnackbarClose = () => setDisplaySnackbar(false)
+
+    const informUser = message => {
+        setSnackbarMessage(message)
+        setDisplaySnackbar(true)
+    }
 
     const fuzzy = timespace.getFuzzyLocalTimeFromPoint(
         data.time[index] * 1000, [data.longitude[index], data.latitude[index]])
@@ -112,18 +151,24 @@ const App = () => {
     }, [])
 
     useEffect(() => {
-        getInitialData(setData, setIndex)
+        getInitialData(setData, setIndex, setLoading, informUser)
     }, [])
 
     useEffect(() => {
         const interval = setInterval(() => {
             getNow(setNow)
         }, 1000)
+        setNowIntervalId(interval)
         return () => clearInterval(interval)
     }, [])
 
     useEffect(() => {
         if (!now) {
+            return
+        }
+
+        if (!now.recording && nowIntervalId) {
+            clearInterval(nowIntervalId)
             return
         }
 
@@ -143,6 +188,10 @@ const App = () => {
             latitude: [...data.latitude, replaceNull('latitude', data, now)]
         })
 
+        if (now.longitude) {
+            setGpsFix(true)
+        }
+
         if (index === lengthBefore - 1) {
             setIndex(index => index + 1)
         }
@@ -157,6 +206,8 @@ const App = () => {
                 data={data}
                 index={index}
                 callbackIndex={setIndex}
+                loading={loading}
+                gpsFix={gpsFix}
             />
 
             <Chips
@@ -213,18 +264,53 @@ const App = () => {
                     utcOffset={utcOffset}
                 />
             }
-            <div style={{
+
+            {displayListFlights &&
+                <ListFlights
+                    handleClose={() => setDisplayListFlights(false)}
+                    viewportHeight={viewportHeight}
+                    viewportWidth={viewportWidth}
+                    dataUrl={dataUrl}
+                />
+            }
+
+            {!displayPlots && !displayListFlights && <div style={{
                 position: 'absolute',
                 left: 0,
                 top: 0,
                 padding: 10
             }}>
-                {!displayPlots &&
-                    <IconButton onClick={() => setDisplayPlots(true)}>
-                        <ShowChartIcon />
-                    </IconButton>
-                }
-            </div>
+                <Box display="flex" flexDirection="column">
+                    <Tooltip title="Plots" placement="right">
+                        <IconButton onClick={() => setDisplayPlots(true)}>
+                            <ShowChartIcon />
+                        </IconButton>
+                    </Tooltip>
+                    <Tooltip title="List Flights" placement="right">
+                        <IconButton onClick={() => setDisplayListFlights(true)}>
+                            <ListIcon />
+                        </IconButton>
+                    </Tooltip>
+                </Box>
+            </div>}
+
+            <Snackbar
+                open={displaySnackbar}
+                autoHideDuration={6000}
+                onClose={handleSnackbarClose}
+                message={snackbarMessage}
+                anchorOrigin={{
+                    vertical: 'top',
+                    horizontal: 'center',
+                }}
+            />
+
+            <Backdrop open={loading} style={{
+                zIndex: 1000,
+                color: '#fff'
+            }}>
+                <CircularProgress color="inherit" />
+            </Backdrop>
         </div>
     )
 }
